@@ -7,6 +7,8 @@ install.packages("finalfit")
 install.packages("knitr")
 install.packages("nortest")
 install.packages("ggcorrplot")
+install.packages("car")
+install.packages("psych")
 library(tidyverse)
 library(rio)
 library(janitor)
@@ -14,6 +16,8 @@ library(finalfit)
 library(knitr)
 library(nortest)
 library(ggcorrplot)
+library(car)
+library(psych)
 
 getwd()
 
@@ -24,6 +28,18 @@ data <- rio::import(file = "./mars-project-module-1.xlsx") %>%
   mutate(across(.cols = 10:30,
                 .fns = ~ case_when(. == "no or not sure" ~ "no",
                                    T ~ .)))
+
+cronbach_questions <- data %>% 
+  select(7,8,9,10,12,13,14,16,17,18,19,21:30) %>% 
+  mutate(across(everything(),
+                .fns = ~ case_when(. == "yes" ~ 1,
+                                   . == "no" ~ 0,
+                                   T ~ 0)))
+
+cronbach_results <- alpha(cronbach_questions)
+
+summary(cronbach_results)
+
 
 demographic.df <- data %>% 
   select(1:6) %>% 
@@ -54,15 +70,20 @@ knowledge.scores <- tibble(knowledge.yes,knowledge.no) %>%
 knowledge.prob.tables <- table(knowledge.scores$bloom_level_knowledge) %>% 
   prop.table(.) * 100
 
-knowledge.prob.tables %>% as.data.frame(.) %>%
-  rename(level = 1,
-         percentage = 2) %>% 
-  ggplot(.,aes(x = level,
-               y = percentage,
-               fill = level)) +
-  geom_col() +
-  ggtitle("Knowledge Percentage") +
-  theme(plot.title = element_text(family = "bold",hjust = 0.5))
+domins_levels_percentages <- function(table,title){
+  table %>% as.data.frame(.) %>%
+    rename(level = 1,
+           percentage = 2) %>% 
+    ggplot(.,aes(x = level,
+                 y = percentage,
+                 fill = level)) +
+    geom_col() +
+    geom_text(aes(label = percentage), vjust = -0.5) +
+    ggtitle(title) +
+    theme(plot.title = element_text(family = "bold",hjust = 0.5))
+}
+
+domins_levels_percentages(knowledge.prob.tables,"Knowledge Percentages")
 
 
 attitude.yes <- data %>% 
@@ -80,6 +101,8 @@ attitude.scores <- attitude.yes %>%
 
 attitude.prop.table <- table(attitude.scores$bloom_level_attitude) %>% 
   prop.table(.) * 100
+
+domins_levels_percentages(attitude.prop.table,"Attitude Percentages")
 
 
 perception.yes <- data %>% 
@@ -107,7 +130,7 @@ perception.scores <- tibble(perception.yes,perception.no) %>%
 perception.prop.table <- table(perception.scores$bloom_level_perception) %>% 
   prop.table(.) * 100
 
-barplot(perception.prop.table)
+domins_levels_percentages(perception.prop.table,"Perception Percentages")
 
 
 # correlation matrix
@@ -151,6 +174,7 @@ knowledge_high_moderate <- knowledge.df %>%
   finalfit(dependent = "knowledge_score",
            explanatory = explanatory)
 
+
 # show it in a better format
 
 knowledge_high_moderate %>%  knitr::kable(.)
@@ -167,6 +191,7 @@ model_knowledge_high_moderate <- knowledge.df %>%
   glm(knowledge_score ~ age + sex + marital_status + education_level + job + health_condition, data = .,family = binomial())
 
 summary(model_knowledge_high_moderate)
+vif(model_knowledge_high_moderate)
 
 ## create a function that takes the data frame name, score_variable_name, level1 and level2
 # df ==> knowledge.df,attitude.df,perception.df
