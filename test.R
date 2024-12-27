@@ -1,5 +1,5 @@
 
-test <- knowledge.total %>% 
+test <- knowledge.scores %>% 
   tibble(data$age,data$sex,data$marital_status,.) %>% 
   rename(age = "data$age",
          sex = "data$sex",
@@ -12,7 +12,7 @@ test %>%
            dependent = "bloom_level_knowledge") %>% 
   knitr::kable(.)
 
-test1 <- test %>% test %>% 
+test1 <- test %>% 
   select(bloom_level_knowledge,age) %>% 
   finalfit(explanatory = "age",
            dependent = "bloom_level_knowledge") %>% 
