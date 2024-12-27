@@ -5,11 +5,13 @@ install.packages("rio")
 install.packages("janitor")
 install.packages("finalfit")
 install.packages("knitr")
+install.packages("nortest")
 library(tidyverse)
 library(rio)
 library(janitor)
 library(finalfit)
 library(knitr)
+library(nortest)
 
 getwd()
 
@@ -22,7 +24,7 @@ data <- rio::import(file = "./mars-project-module-1.xlsx") %>%
                                    T ~ .)))
 
 demographic.df <- data %>% 
-  select(1:6) %>% 
+  select(1:5) %>% 
   mutate(across(.cols = 2:6,
                 .fns = as_factor))
 
@@ -47,7 +49,7 @@ knowledge.scores <- tibble(knowledge.yes,knowledge.no) %>%
          total_percentage_knowledge = ( total_score_knowledge / 8) * 100,
          bloom_level_knowledge = cut(total_percentage_knowledge,breaks = c(-1,60,80,101),labels = c("Low","Moderate","High")))
 
-knowledge.prob.tables <- table(knowledge.total$bloom_level_knowledge) %>% 
+knowledge.prob.tables <- table(knowledge.scores$bloom_level_knowledge) %>% 
   prop.table(.) * 100
 
 
@@ -92,3 +94,15 @@ perception.scores <- tibble(perception.yes,perception.no) %>%
 
 perception.prop.table <- table(perception.scores$bloom_level_perception) %>% 
   prop.table(.) * 100
+
+
+total.scores <- tibble(knowledge.scores,attitude.scores,perception.scores) %>% 
+  select(total_percentage_knowledge,total_percentage_attitude,total_percentage_perception)
+
+shapiro.test(total.scores$total_percentage_knowledge)
+shapiro.test(total.scores$total_percentage_attitude)
+shapiro.test(total.scores$total_percentage_perception)
+
+correlation.matrix <- cor(total.scores,method = "spearman")
+
+

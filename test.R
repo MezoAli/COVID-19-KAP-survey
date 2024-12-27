@@ -31,3 +31,11 @@ test.df <- data %>%
   mutate(across(.cols = 10:30,
                 .fns = ~ case_when(. == "No or not sure" ~ "No",
                                  T ~ .)))
+
+test.df %>% 
+  filter(if_any(.cols = 10:30,
+                .fns = is.character))
+
+
+nor <- rnorm(100)
+shapiro.test(nor)
