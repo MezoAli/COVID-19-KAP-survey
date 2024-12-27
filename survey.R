@@ -6,12 +6,14 @@ install.packages("janitor")
 install.packages("finalfit")
 install.packages("knitr")
 install.packages("nortest")
+install.packages("ggcorrplot")
 library(tidyverse)
 library(rio)
 library(janitor)
 library(finalfit)
 library(knitr)
 library(nortest)
+library(ggcorrplot)
 
 getwd()
 
@@ -51,6 +53,16 @@ knowledge.scores <- tibble(knowledge.yes,knowledge.no) %>%
 
 knowledge.prob.tables <- table(knowledge.scores$bloom_level_knowledge) %>% 
   prop.table(.) * 100
+
+knowledge.prob.tables %>% as.data.frame(.) %>%
+  rename(level = 1,
+         percentage = 2) %>% 
+  ggplot(.,aes(x = level,
+               y = percentage,
+               fill = level)) +
+  geom_col() +
+  ggtitle("Knowledge Percentage") +
+  theme(plot.title = element_text(family = "bold",hjust = 0.5))
 
 
 attitude.yes <- data %>% 
@@ -95,6 +107,8 @@ perception.scores <- tibble(perception.yes,perception.no) %>%
 perception.prop.table <- table(perception.scores$bloom_level_perception) %>% 
   prop.table(.) * 100
 
+barplot(perception.prop.table)
+
 
 # correlation matrix
 
@@ -106,6 +120,15 @@ shapiro.test(total.scores$total_percentage_attitude)
 shapiro.test(total.scores$total_percentage_perception)
 
 correlation.matrix <- cor(total.scores,method = "spearman")
+
+correlation.matrix.plot <- ggcorrplot(correlation.matrix,method = "square", lab = TRUE,title = "Correlation Matrix")
+
+ggsave(filename = "correlation_matrix.png",
+       plot = correlation.matrix.plot,
+       width = 29,
+       height = 21,
+       units = "cm",
+       dpi = 600)
 
 ## regression analysis to predict the outcomes based on basic info
 

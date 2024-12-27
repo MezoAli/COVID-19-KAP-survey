@@ -69,5 +69,17 @@ finalfit_results(knowledge.df, "knowledge_score", "high", "moderate")
   
   
   
-  
+domins_levels_percentages <- function(table,title){
+  table %>% as.data.frame(.) %>%
+    rename(level = 1,
+           percentage = 2) %>% 
+    ggplot(.,aes(x = level,
+                 y = percentage,
+                 fill = level)) +
+    geom_col() +
+    geom_text(aes(label = percentage), vjust = -0.5) +
+    ggtitle(title) +
+    theme(plot.title = element_text(family = "bold",hjust = 0.5))
+}
+domins_levels_percentages(attitude.prop.table,"Attitude Percentage")
   
