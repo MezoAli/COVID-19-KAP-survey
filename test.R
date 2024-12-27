@@ -25,3 +25,9 @@ data %>%
 data %>% 
   select(health_condition) %>% 
   n_distinct()
+
+
+test.df <- data %>% 
+  mutate(across(.cols = 10:30,
+                .fns = ~ case_when(. == "No or not sure" ~ "No",
+                                 T ~ .)))

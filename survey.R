@@ -14,7 +14,12 @@ library(knitr)
 getwd()
 
 data <- rio::import(file = "./mars-project-module-1.xlsx") %>% 
-  clean_names(.)
+  clean_names(.) %>% 
+  mutate(across(.cols = everything(),
+                .fns = ~ str_to_lower(.))) %>% 
+  mutate(across(.cols = 10:30,
+                .fns = ~ case_when(. == "no or not sure" ~ "no",
+                                   T ~ .)))
 
 demographic.df <- data %>% 
   select(1:6) %>% 
@@ -24,19 +29,19 @@ demographic.df <- data %>%
 knowledge.yes <- data %>% 
   select(10,13) %>% 
   mutate(across(.cols = everything(),
-                .fns = ~ case_when(. == "Yes" ~ 2,
+                .fns = ~ case_when(. == "yes" ~ 2,
                                    T ~ 0),
                 .names = "score_{col}"))
 
 knowledge.no <- data %>% 
   select(12,14) %>% 
   mutate(across(.cols = everything(),
-                .fns = ~ case_when(. == "No" ~ 2,
+                .fns = ~ case_when(. == "no" ~ 2,
                                    T ~ 0),
                 .names = "score_{col}"))
 
 
-knowledge.total <- tibble(knowledge.yes,knowledge.no) %>%
+knowledge.scores <- tibble(knowledge.yes,knowledge.no) %>%
   select(contains("score")) %>% 
   mutate(total_score_knowledge = rowSums(across(everything())),
          total_percentage_knowledge = ( total_score_knowledge / 8) * 100,
@@ -49,7 +54,7 @@ knowledge.prob.tables <- table(knowledge.total$bloom_level_knowledge) %>%
 attitude.yes <- data %>% 
   select(16,17,18,19,21,22,23) %>% 
   mutate(across(.cols = 1:7,
-                .fns = ~ case_when(. == "Yes" ~ 2,
+                .fns = ~ case_when(. == "yes" ~ 2,
                                    T ~ 0),
                 .names = "score_{col}"))
 
@@ -60,4 +65,30 @@ attitude.scores <- attitude.yes %>%
          bloom_level_attitude = cut(total_percentage_attitude,breaks = c(-1,60,80,101),labels = c("Low","Moderate","High")))
 
 attitude.prop.table <- table(attitude.scores$bloom_level_attitude) %>% 
+  prop.table(.) * 100
+
+
+perception.yes <- data %>% 
+  select(24,25,26,29,30) %>% 
+  mutate(across(.cols = everything(),
+                .fns = ~ case_when(. == "yes" ~ 2,
+                                   T ~ 0),
+                .names = "score_{col}"))
+
+
+perception.no <- data %>% 
+  select(27,28) %>% 
+  mutate(across(.cols = everything(),
+                .fns = ~ case_when(. == "no" ~ 2,
+                                   T ~ 0),
+                .names = "score_{col}"))
+
+
+perception.scores <- tibble(perception.yes,perception.no) %>% 
+  select(contains("score")) %>% 
+  mutate(total_score_perception =  rowSums(across(1:7)),
+         total_percentage_perception = round((total_score_perception / 14) * 100,1),
+         bloom_level_perception = cut(total_percentage_perception,breaks = c(-1,60,80,101),labels = c("Low","Moderate","High")))
+
+perception.prop.table <- table(perception.scores$bloom_level_perception) %>% 
   prop.table(.) * 100
