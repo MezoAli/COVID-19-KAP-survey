@@ -18,7 +18,7 @@ test1 <- test %>% test %>%
            dependent = "bloom_level_knowledge") %>% 
   knitr::kable(.)
 
-
+# to get questions in the console
 data %>% 
   colnames(.)
 
