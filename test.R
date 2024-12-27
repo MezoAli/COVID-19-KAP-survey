@@ -39,3 +39,35 @@ test.df %>%
 
 nor <- rnorm(100)
 shapiro.test(nor)
+
+
+finalfit_results <- function(df, score, level1, level2) {
+  explanatory <- demographic.df %>% 
+    colnames(.)
+  # Ensure score is numeric
+  df <- df %>% mutate(age = as.numeric(age))
+  
+  # Filter rows based on the levels of the score
+  filtered_df <- df %>%
+    filter(get(score) %in% c(level1, level2)) 
+  
+  # Run finalfit on filtered data
+  finalfit_result <- filtered_df %>%
+    finalfit(dependent = score,
+             explanatory = explanatory) 
+  
+  # Return the table with knitr::kable to see the results in the console
+  finalfit_result %>% knitr::kable()
+  
+  # Export the results as csv file
+  rio::export(x = finalfit_result,
+              file = paste0("finalfit_",score,"_",level1,"_",level2,".csv"))
+}
+
+# Example usage:  # Specify explanatory variables
+finalfit_results(knowledge.df, "knowledge_score", "high", "moderate") 
+  
+  
+  
+  
+  

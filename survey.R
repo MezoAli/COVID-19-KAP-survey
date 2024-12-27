@@ -107,10 +107,16 @@ shapiro.test(total.scores$total_percentage_perception)
 
 correlation.matrix <- cor(total.scores,method = "spearman")
 
-# regression analysis to predict the outcomes based on basic info
+## regression analysis to predict the outcomes based on basic info
+
+# create data frames that contain the basic info plus the bloom level score
 
 knowledge.df <- tibble(demographic.df,knowledge_score = knowledge.scores$bloom_level_knowledge)
+attitude.df <- tibble(demographic.df,attitude_score = attitude.scores$bloom_level_attitude)
+perception.df <- tibble(demographic.df,perception_score = perception.scores$bloom_level_perception)
 
+
+# create explanatory vector that contain names of basic info
 explanatory <- demographic.df %>% 
   colnames(.)
 
@@ -120,11 +126,13 @@ knowledge_high_moderate <- knowledge.df %>%
   mutate(age = as.numeric(age)) %>%
   filter(knowledge_score %in% c("high","moderate")) %>% 
   finalfit(dependent = "knowledge_score",
-           explanatory = explanatory) %>% 
-  knitr::kable(.)
+           explanatory = explanatory)
 
-knowledge_high_moderate %>% class()
+# show it in a better format
 
+knowledge_high_moderate %>%  knitr::kable(.)
+
+# export the file as csv file
 rio::export(x = knowledge_high_moderate,
             file = "regression_finalfit_knowledge_high_moderate.csv")
 
@@ -137,6 +145,37 @@ model_knowledge_high_moderate <- knowledge.df %>%
 
 summary(model_knowledge_high_moderate)
 
-# finalfit knowledge high:low
+## create a function that takes the data frame name, score_variable_name, level1 and level2
+# df ==> knowledge.df,attitude.df,perception.df
+# score ==> knowledge_score,attitude_score,perception_score
+# level1 and level 2 ==> "high" / "moderate" / "low"
+
+finalfit_results <- function(df, score, level1, level2) {
+  explanatory <- demographic.df %>% 
+    colnames(.)
+  # Ensure score is numeric
+  df <- df %>% mutate(age = as.numeric(age))
+  
+  # Filter rows based on the levels of the score
+  filtered_df <- df %>%
+    filter(get(score) %in% c(level1, level2)) 
+  
+  # Run finalfit on filtered data
+  finalfit_result <- filtered_df %>%
+    finalfit(dependent = score,
+             explanatory = explanatory) 
+  
+  # Return the table with knitr::kable to see the results in the console
+  print(knitr::kable(finalfit_result))
+  
+  # Export the results as csv file
+  rio::export(x = finalfit_result,
+              file = paste0("finalfit_",score,"_",level1,"_",level2,".csv"))
+}
+
+# running an example like for attitude.df , attitude_score , "high" , "moderate"
+finalfit_results(attitude.df,"attitude_score","high","low")
+finalfit_results(knowledge.df,"knowledge_score","high","low")
+finalfit_results(perception.df,"perception_score","high","low")
 
 
