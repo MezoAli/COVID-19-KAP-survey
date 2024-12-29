@@ -29,16 +29,50 @@ data <- rio::import(file = "./mars-project-module-1.xlsx") %>%
                 .fns = ~ case_when(. == "no or not sure" ~ "no",
                                    T ~ .)))
 
-cronbach_questions <- data %>% 
+knowledge.questions <- data %>% 
+  select(10,12,13,14)  %>% 
+  mutate(across(everything(),
+                .fns = ~ case_when(. == "yes" ~ 1,
+                                   . == "no" ~ 0,
+                                   T ~ 0)))
+
+cronbach_knowledge_questions_results <- alpha(knowledge.questions)
+
+summary(cronbach_knowledge_questions_results)
+
+attitude.questions <- data %>% 
+  select(16,17,18,19,21,22,23) %>% 
+  mutate(across(everything(),
+                .fns = ~ case_when(. == "yes" ~ 1,
+                                  . == "no" ~ 0,
+                                   T ~ 0)))
+
+
+cronbach_attitude_questions_results <- alpha(attitude.questions)
+
+summary(cronbach_attitude_questions_results)
+
+perception.questions <- data %>% 
+  select(24:30) %>% 
+  mutate(across(everything(),
+                .fns = ~ case_when(. == "yes" ~ 1,
+                                   . == "no" ~ 0,
+                                   T ~ 0)))
+
+cronbach_perception_questions_results <- alpha(perception.questions)
+
+summary(cronbach_perception_questions_results)
+
+cronbach_all_questions <- data %>% 
   select(7,8,9,10,12,13,14,16,17,18,19,21:30) %>% 
   mutate(across(everything(),
                 .fns = ~ case_when(. == "yes" ~ 1,
                                    . == "no" ~ 0,
                                    T ~ 0)))
 
-cronbach_results <- alpha(cronbach_questions)
+cronbach_all_questions_results <- alpha(cronbach_questions)
 
-summary(cronbach_results)
+summary(cronbach_all_questions_results)
 
 
 demographic.df <- data %>% 
@@ -198,7 +232,7 @@ vif(model_knowledge_high_moderate)
 # score ==> knowledge_score,attitude_score,perception_score
 # level1 and level 2 ==> "high" / "moderate" / "low"
 
-finalfit_results <- function(df, score, level1, level2) {
+finalfit_results_all_explanatory <- function(df, score, level1, level2) {
   explanatory <- demographic.df %>% 
     colnames(.)
   # Ensure score is numeric
@@ -222,8 +256,35 @@ finalfit_results <- function(df, score, level1, level2) {
 }
 
 # running an example like for attitude.df , attitude_score , "high" , "moderate"
-finalfit_results(attitude.df,"attitude_score","high","low")
-finalfit_results(knowledge.df,"knowledge_score","high","low")
-finalfit_results(perception.df,"perception_score","high","low")
+finalfit_results_all_explanatory(knowledge.df,"knowledge_score","high","low")
+finalfit_results_all_explanatory(attitude.df,"attitude_score","high","low")
+finalfit_results_all_explanatory(perception.df,"perception_score","high","low")
 
+# this model failed due to co-linerity
 
+finalfit_results_all_explanatory(attitude.df,"attitude_score","high","moderate")
+
+model_attitude_high_moderate <- attitude.df %>% 
+  mutate(age = as.numeric(age)) %>% 
+  filter(attitude_score %in% c("high","moderate")) %>%
+  glm(attitude_score ~ age + sex + marital_status + education_level + job + health_condition, data = .,family = binomial())
+
+summary(model_attitude_high_moderate)
+vif(model_attitude_high_moderate)
+
+# exexlude the job coulmn to remove co-linerity but the problem still present maybe due to small sample size (8 observations)
+# and run the glm function to show the results as finalfit didn't give any results
+
+model_attitude_high_moderate_without_job <- attitude.df %>% 
+  mutate(age = as.numeric(age)) %>% 
+  select(-job) %>% 
+  filter(attitude_score %in% c("high","moderate")) %>%
+  glm(attitude_score ~ age + sex + marital_status + education_level + health_condition, data = .,family = binomial())
+
+summary(model_attitude_high_moderate_without_job)
+
+# Variance Inflation Factor shows that there is severe co-linerity
+
+vif(model_attitude_high_moderate_without_job)
+
+# so we gonna create another function that predict the dependent variable vs only one explantory variable
