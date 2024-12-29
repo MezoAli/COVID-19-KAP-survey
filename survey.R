@@ -288,3 +288,31 @@ summary(model_attitude_high_moderate_without_job)
 vif(model_attitude_high_moderate_without_job)
 
 # so we gonna create another function that predict the dependent variable vs only one explantory variable
+## create a function that takes the data frame name, explanatory, score_variable_name, level1 and level2
+# df ==> knowledge.df,attitude.df,perception.df
+# explanatory ==> age,sex,marital_status,education_level,job,health_condition
+# score ==> knowledge_score,attitude_score,perception_score
+# level1 and level 2 ==> "high" / "moderate" / "low"
+
+finalfit_results_single_explanatory <- function(df,explanatory, score, level1, level2) {
+  
+  df <- df %>% mutate(age = as.numeric(age))
+  
+  # Filter rows based on the levels of the score
+  filtered_df <- df %>%
+    filter(get(score) %in% c(level1, level2)) 
+  
+  # Run finalfit on filtered data
+  finalfit_result <- filtered_df %>%
+    finalfit(dependent = score,
+             explanatory = explanatory) 
+  
+  # Return the table with knitr::kable to see the results in the console
+  print(knitr::kable(finalfit_result))
+  
+  #Export the results as csv file
+  rio::export(x = finalfit_result,
+              file = paste0("finalfit_","explanatory_",score,"_",level1,"_",level2,".csv"))
+}
+
+finalfit_results_single_explanatory(attitude.df,"job","attitude_score","high","moderate")

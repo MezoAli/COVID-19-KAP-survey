@@ -1,0 +1,6 @@
+Dependent: attitude_score, ,low,moderate,high,OR (univariable),OR (multivariable)
+job,healthcare professional,0 (0.0),0 (0.0),6 (100.0),-,-
+"",not healthcare professional,0 (NaN),0 (NaN),0 (NaN),-,-
+"",student,0 (0.0),2 (100.0),0 (0.0),"0.00 (NA-Inf, p=1.000)","0.00 (NA-Inf, p=1.000)"
+"",housewife,0 (NaN),0 (NaN),0 (NaN),-,-
+"",jobless,0 (NaN),0 (NaN),0 (NaN),-,-
