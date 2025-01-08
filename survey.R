@@ -11,9 +11,7 @@ install.packages("janitor")
 install.packages("finalfit")
 # used to make tables in the console of good shape
 install.packages("knitr")
-#
-install.packages("nortest")
-#
+# to display the heat map
 install.packages("ggcorrplot")
 # we use car to use one function vif to calcalute the variance inflation factor 
 # to detect collinerity in our model
@@ -30,7 +28,7 @@ library(ggcorrplot)
 library(car)
 library(psych)
 library(Hmisc)
-
+library(gmodels)
 getwd()
 ### Data Wrangling
 
@@ -107,14 +105,18 @@ summary(cronbach_all_questions_results)
 # raw_alpha => 0.7
 
 # function describe from package Hmisc to summarize and tabulate the data
-# to get to know the data
+# to get to know the data and from the data provided it's better to execlude the
+# health condition as most of the values is on nothing and other categories
+# have very small number of observation
 describe(data)
 
-
+# function from gmodels package that display the tables and proportions together
+# like table and prop.table together
+CrossTable(data$health_condition)
 # get the demographic variables which will be used later for prediction
 demographic.df <- data %>% 
-  select(1:6) %>% 
-  mutate(across(.cols = 2:6,
+  select(1:5) %>% 
+  mutate(across(.cols = 2:5,
                 .fns = as_factor))
 
 
@@ -273,7 +275,8 @@ ggsave(filename = "correlation_matrix.png",
 
 ### regression analysis to predict the outcomes based on basic info
 
-# create data frames that contain the basic info plus the bloom level score
+# create data frames that contain the basic info plus the bloom level score 
+# for each domin
 
 knowledge.df <- tibble(demographic.df,knowledge_score = knowledge.scores$bloom_level_knowledge)
 attitude.df <- tibble(demographic.df,attitude_score = attitude.scores$bloom_level_attitude)
@@ -306,10 +309,21 @@ rio::export(x = knowledge_high_moderate,
 model_knowledge_high_moderate <- knowledge.df %>% 
   mutate(age = as.numeric(age)) %>% 
   filter(knowledge_score %in% c("high","moderate")) %>%
-  glm(knowledge_score ~ age + sex + marital_status + education_level + job + health_condition, data = .,family = binomial())
+  glm(knowledge_score ~ age + sex + marital_status + education_level + job, data = .,family = binomial())
 
+
+# to show the log odds of the coefficents, standard errors, p-values for each one, null and residual deviance and AIC
 summary(model_knowledge_high_moderate)
+
+# to show and odds ratio for each coeficeient
+exp(model_knowledge_high_moderate$coefficients)
+
+# to show the effect of each predictors on the deviance, it's p-value
+anova(model_knowledge_high_moderate,method = "Chisq")
+
+# to detect any collinerity between variables that could cause problem the model
 vif(model_knowledge_high_moderate)
+
 
 ## create a function that takes the data frame name, score_variable_name, level1 and level2
 # df ==> knowledge.df,attitude.df,perception.df
@@ -344,15 +358,17 @@ finalfit_results_all_explanatory(knowledge.df,"knowledge_score","high","low")
 finalfit_results_all_explanatory(attitude.df,"attitude_score","high","low")
 finalfit_results_all_explanatory(perception.df,"perception_score","high","low")
 
-# this model failed due to co-linerity
+# this model failed due to very small sample size (only 8 observations) and
+# some predictors here have extremely collinerity
 
 finalfit_results_all_explanatory(attitude.df,"attitude_score","high","moderate")
 
 model_attitude_high_moderate <- attitude.df %>% 
   mutate(age = as.numeric(age)) %>% 
   filter(attitude_score %in% c("high","moderate")) %>%
-  glm(attitude_score ~ age + sex + marital_status + education_level + job + health_condition, data = .,family = binomial())
+  glm(attitude_score ~ age + sex + marital_status + education_level + job , data = .,family = binomial())
 
+# this also shown here in the summary
 summary(model_attitude_high_moderate)
 vif(model_attitude_high_moderate)
 
@@ -363,7 +379,7 @@ model_attitude_high_moderate_without_job <- attitude.df %>%
   mutate(age = as.numeric(age)) %>% 
   select(-job) %>% 
   filter(attitude_score %in% c("high","moderate")) %>%
-  glm(attitude_score ~ age + sex + marital_status + education_level + health_condition, data = .,family = binomial())
+  glm(attitude_score ~ age + sex + marital_status + education_level, data = .,family = binomial())
 
 summary(model_attitude_high_moderate_without_job)
 
@@ -399,4 +415,7 @@ finalfit_results_single_explanatory <- function(df,explanatory, score, level1, l
               file = paste0("finalfit_","explanatory_",score,"_",level1,"_",level2,".csv"))
 }
 
+# as the results listed very little observation leads to serious problems
 finalfit_results_single_explanatory(attitude.df,"job","attitude_score","high","moderate")
+
+
