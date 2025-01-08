@@ -32,6 +32,8 @@ library(psych)
 library(Hmisc)
 
 getwd()
+### Data Wrangling
+
 
 # importing the whole data, converting all rows into lowerCase, and turn the no 
 # or not sure into just no to prevent overlapping as some cloumns have just no
@@ -224,19 +226,44 @@ perception.prop.table <- table(perception.scores$bloom_level_perception) %>%
 domins_levels_percentages(perception.prop.table,"Perception Percentages")
 
 
-# correlation matrix
+### correlation matrix
 
+# create data frame that contains only scores (numeric values) to get the
+# correlation between domins
 total.scores <- tibble(knowledge.scores,attitude.scores,perception.scores) %>% 
   select(total_percentage_knowledge,total_percentage_attitude,total_percentage_perception)
 
+
+# shapiro test used to test if the data follows normal distribution or not
+# null hypothesis => the data follow normal distribution
+# so we are interested in p-values to know wether the data is normally distributed or not
 shapiro.test(total.scores$total_percentage_knowledge)
 shapiro.test(total.scores$total_percentage_attitude)
 shapiro.test(total.scores$total_percentage_perception)
 
+
+# (Histogram ) another measure to see the distribution of data but not very useful in that case
+hist(total.scores$total_percentage_knowledge)
+hist(total.scores$total_percentage_attitude)
+hist(total.scores$total_percentage_perception)
+
+
+# (Density plot ) yet another measure to see the distribution of data
+plot(density(total.scores$total_percentage_knowledge))
+plot(density(total.scores$total_percentage_attitude))
+plot(density(total.scores$total_percentage_perception))
+
+
+# from the results obtained from shapiro test, Histogram and Density plot we
+# can concolude that the data is NOT normally dist. and so we go for spearman rank's
+# correlation insted of Pearson's correlation
 correlation.matrix <- cor(total.scores,method = "spearman")
 
+
+# heat map to show the relation between different domins
 correlation.matrix.plot <- ggcorrplot(correlation.matrix,method = "square", lab = TRUE,title = "Correlation Matrix")
 
+# used to export the graph to be included in the final outcome
 ggsave(filename = "correlation_matrix.png",
        plot = correlation.matrix.plot,
        width = 29,
@@ -244,7 +271,7 @@ ggsave(filename = "correlation_matrix.png",
        units = "cm",
        dpi = 600)
 
-## regression analysis to predict the outcomes based on basic info
+### regression analysis to predict the outcomes based on basic info
 
 # create data frames that contain the basic info plus the bloom level score
 
