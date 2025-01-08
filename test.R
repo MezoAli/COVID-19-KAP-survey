@@ -108,4 +108,5 @@ finalfit_results(knowledge.df, "knowledge_score", "high", "moderate")
 
 finalfit_results_single_explanatory(attitude.df,"age","attitude_score","high","moderate")
 finalfit_results_single_explanatory(attitude.df,"job","attitude_score","high","moderate")
+
   

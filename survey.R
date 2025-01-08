@@ -1,13 +1,24 @@
 rm(list = ls())
 graphics.off()
+# used for data wrangling and prepare data for analysis
 install.packages("tidyverse")
+# used to import and export files in r (extremely fast package)
 install.packages("rio")
+# we use only one function from janitor => clean_names to standarize variables names
+# in the data frame (ex making all of them lowerCase,remove any spaces,etc...)
 install.packages("janitor")
+# used to run the logistic regression and get the odds ratio for interpretion
 install.packages("finalfit")
+# used to make tables in the console of good shape
 install.packages("knitr")
+#
 install.packages("nortest")
+#
 install.packages("ggcorrplot")
+# we use car to use one function vif to calcalute the variance inflation factor 
+# to detect collinerity in our model
 install.packages("car")
+# used function from it "alpha" to calcalute the crohbach"s alpha value
 install.packages("psych")
 library(tidyverse)
 library(rio)
@@ -21,6 +32,9 @@ library(psych)
 
 getwd()
 
+# importing the whole data, converting all rows into lowerCase, and turn the no 
+# or not sure into just no to prevent overlapping as some cloumns have just no
+# and other columns has no or not sure
 data <- rio::import(file = "./mars-project-module-1.xlsx") %>% 
   clean_names(.) %>% 
   mutate(across(.cols = everything(),
@@ -29,6 +43,8 @@ data <- rio::import(file = "./mars-project-module-1.xlsx") %>%
                 .fns = ~ case_when(. == "no or not sure" ~ "no",
                                    T ~ .)))
 
+# get all knowlede question, convert yes and no into numeric to calculate
+# cronbach alpha value
 knowledge.questions <- data %>% 
   select(10,12,13,14)  %>% 
   mutate(across(everything(),
@@ -39,7 +55,11 @@ knowledge.questions <- data %>%
 cronbach_knowledge_questions_results <- alpha(knowledge.questions)
 
 summary(cronbach_knowledge_questions_results)
+# raw_alpha => 0.41
 
+
+# get all attitude question, convert yes and no into numeric to calculate
+# cronbach alpha value
 attitude.questions <- data %>% 
   select(16,17,18,19,21,22,23) %>% 
   mutate(across(everything(),
@@ -51,7 +71,11 @@ attitude.questions <- data %>%
 cronbach_attitude_questions_results <- alpha(attitude.questions)
 
 summary(cronbach_attitude_questions_results)
+# raw_alpha => 0.85
 
+
+# get all perception question, convert yes and no into numeric to calculate
+# cronbach alpha value
 perception.questions <- data %>% 
   select(24:30) %>% 
   mutate(across(everything(),
@@ -62,7 +86,10 @@ perception.questions <- data %>%
 cronbach_perception_questions_results <- alpha(perception.questions)
 
 summary(cronbach_perception_questions_results)
+# raw_alpha => 0.42
 
+
+# get all question and calculate the cronbach alpha for all question together
 cronbach_all_questions <- data %>% 
   select(7,8,9,10,12,13,14,16,17,18,19,21:30) %>% 
   mutate(across(everything(),
@@ -70,10 +97,11 @@ cronbach_all_questions <- data %>%
                                    . == "no" ~ 0,
                                    T ~ 0)))
 
-cronbach_all_questions_results <- alpha(cronbach_questions)
+
+cronbach_all_questions_results <- alpha(cronbach_all_questions)
 
 summary(cronbach_all_questions_results)
-
+# raw_alpha => 0.7
 
 demographic.df <- data %>% 
   select(1:6) %>% 
