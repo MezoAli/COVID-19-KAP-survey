@@ -29,6 +29,7 @@ library(nortest)
 library(ggcorrplot)
 library(car)
 library(psych)
+library(Hmisc)
 
 getwd()
 
@@ -103,11 +104,20 @@ cronbach_all_questions_results <- alpha(cronbach_all_questions)
 summary(cronbach_all_questions_results)
 # raw_alpha => 0.7
 
+# function describe from package Hmisc to summarize and tabulate the data
+# to get to know the data
+describe(data)
+
+
+# get the demographic variables which will be used later for prediction
 demographic.df <- data %>% 
   select(1:6) %>% 
   mutate(across(.cols = 2:6,
                 .fns = as_factor))
 
+
+# get the knowledge question that ideal answer is yes and 
+# create new columns that have the grade for particular question
 knowledge.yes <- data %>% 
   select(10,13) %>% 
   mutate(across(.cols = everything(),
@@ -115,6 +125,9 @@ knowledge.yes <- data %>%
                                    T ~ 0),
                 .names = "score_{col}"))
 
+
+# get the knowledge question that ideal answer is no and 
+# create new columns that have the grade for particular question
 knowledge.no <- data %>% 
   select(12,14) %>% 
   mutate(across(.cols = everything(),
@@ -123,15 +136,21 @@ knowledge.no <- data %>%
                 .names = "score_{col}"))
 
 
+# merge the knowledge coulmns, get the columns that contain score and
+# calculate total scores, percentages and bloom level
 knowledge.scores <- tibble(knowledge.yes,knowledge.no) %>%
   select(contains("score")) %>% 
   mutate(total_score_knowledge = rowSums(across(everything())),
          total_percentage_knowledge = ( total_score_knowledge / 8) * 100,
          bloom_level_knowledge = cut(total_percentage_knowledge,breaks = c(-1,60,80,101),labels = c("low","moderate","high")))
 
+
+# to get the percentage of each category in the knowledge section
 knowledge.prob.tables <- table(knowledge.scores$bloom_level_knowledge) %>% 
   prop.table(.) * 100
 
+
+# function to plot the percentage of each category in selected domin
 domins_levels_percentages <- function(table,title){
   table %>% as.data.frame(.) %>%
     rename(level = 1,
@@ -148,6 +167,8 @@ domins_levels_percentages <- function(table,title){
 domins_levels_percentages(knowledge.prob.tables,"Knowledge Percentages")
 
 
+# get the attitude question that ideal answer is yes and 
+# create new columns that have the grade for particular question
 attitude.yes <- data %>% 
   select(16,17,18,19,21,22,23) %>% 
   mutate(across(.cols = 1:7,
@@ -155,6 +176,9 @@ attitude.yes <- data %>%
                                    T ~ 0),
                 .names = "score_{col}"))
 
+
+# get the scores for attitude but we didn't merge anything here as the attitude
+# domin has no indeal answers of no
 attitude.scores <- attitude.yes %>% 
   select(contains("score")) %>% 
   mutate(total_score_attitude =  rowSums(across(1:7)),
@@ -167,6 +191,8 @@ attitude.prop.table <- table(attitude.scores$bloom_level_attitude) %>%
 domins_levels_percentages(attitude.prop.table,"Attitude Percentages")
 
 
+# get the perception questions that ideal answer is yes and 
+# create new columns that have the grade for particular question
 perception.yes <- data %>% 
   select(24,25,26,29,30) %>% 
   mutate(across(.cols = everything(),
@@ -175,6 +201,8 @@ perception.yes <- data %>%
                 .names = "score_{col}"))
 
 
+# get the perception questions that ideal answer is no and 
+# create new columns that have the grade for particular question
 perception.no <- data %>% 
   select(27,28) %>% 
   mutate(across(.cols = everything(),
@@ -182,7 +210,8 @@ perception.no <- data %>%
                                    T ~ 0),
                 .names = "score_{col}"))
 
-
+# merge the perception coulmns, get the columns that contain score and
+# calculate total scores, percentages and bloom level
 perception.scores <- tibble(perception.yes,perception.no) %>% 
   select(contains("score")) %>% 
   mutate(total_score_perception =  rowSums(across(1:7)),
