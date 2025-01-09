@@ -18,6 +18,10 @@ install.packages("ggcorrplot")
 install.packages("car")
 # used function from it "alpha" to calcalute the crohbach"s alpha value
 install.packages("psych")
+# used to get the function Cstat to calculate the c-statstics or area under the ROC cureve
+install.packages("DescTools")
+# used to get the hoslem.test to detect the goodness of fit of the model
+install.packages("ResourceSelection")
 library(tidyverse)
 library(rio)
 library(janitor)
@@ -29,6 +33,8 @@ library(car)
 library(psych)
 library(Hmisc)
 library(gmodels)
+library(DescTools)
+library(ResourceSelection)
 getwd()
 ### Data Wrangling
 
@@ -113,11 +119,31 @@ describe(data)
 # function from gmodels package that display the tables and proportions together
 # like table and prop.table together
 CrossTable(data$health_condition)
+
+
+# show the number in each category and select high number category as reference
+# for robust analysis
+table(demographic.df$sex)
+table(demographic.df$marital_status)
+table(demographic.df$education_level)
+table(demographic.df$job)
+
 # get the demographic variables which will be used later for prediction
 demographic.df <- data %>% 
   select(1:5) %>% 
   mutate(across(.cols = 2:5,
-                .fns = as_factor))
+                .fns = as_factor)) %>% 
+  mutate(sex = relevel(sex,ref = "female"),
+         marital_status = relevel(marital_status,ref = "married"),
+         education_level = relevel(education_level,ref = "bachelor"),
+         job = relevel(job,ref = "healthcare professional"))
+
+
+# to make sure that the assigned category is the reference one
+contrasts(demographic.df$sex)
+contrasts(demographic.df$marital_status)
+contrasts(demographic.df$education_level)
+contrasts(demographic.df$job)
 
 
 # get the knowledge question that ideal answer is yes and 
@@ -291,7 +317,8 @@ explanatory <- demographic.df %>%
 
 knowledge_high_moderate <- knowledge.df %>% 
   mutate(age = as.numeric(age)) %>%
-  filter(knowledge_score %in% c("high","moderate")) %>% 
+  filter(knowledge_score %in% c("high","moderate")) %>%
+  mutate(knowledge_score = droplevels(knowledge_score)) %>% 
   finalfit(dependent = "knowledge_score",
            explanatory = explanatory)
 
@@ -304,12 +331,26 @@ knowledge_high_moderate %>%  knitr::kable(.)
 rio::export(x = knowledge_high_moderate,
             file = "regression_finalfit_knowledge_high_moderate.csv")
 
+
+
 # regression analysis knowledge high:moderate (just to make sure of finalfit results)
 
 model_knowledge_high_moderate <- knowledge.df %>% 
   mutate(age = as.numeric(age)) %>% 
   filter(knowledge_score %in% c("high","moderate")) %>%
+  mutate(knowledge_score = droplevels(knowledge_score)) %>%
+  mutate(knowledge_score = relevel(knowledge_score,ref = "moderate")) %>% 
   glm(knowledge_score ~ age + sex + marital_status + education_level + job, data = .,family = binomial())
+
+
+# generate null model to be later compared to the proposed model 
+# to get the MCFadden or pseudo R^2 value
+null_model_knowledge_high_moderate <- knowledge.df %>% 
+  mutate(age = as.numeric(age)) %>% 
+  filter(knowledge_score %in% c("high","moderate")) %>%
+  mutate(knowledge_score = droplevels(knowledge_score)) %>%
+  mutate(knowledge_score = relevel(knowledge_score,ref = "moderate")) %>% 
+  glm(knowledge_score ~ 1,family = binomial,data = .)
 
 
 # to show the log odds of the coefficents, standard errors, p-values for each one, null and residual deviance and AIC
@@ -323,6 +364,26 @@ anova(model_knowledge_high_moderate,method = "Chisq")
 
 # to detect any collinerity between variables that could cause problem the model
 vif(model_knowledge_high_moderate)
+
+# calculate the McFadden r2 value => to measure predictive power of the model
+# it's value is almost 17 which idicate good predictive power but not so good
+r2_knowledge_high_moderate <- 1 - logLik(model_knowledge_high_moderate) / logLik(null_model_knowledge_high_moderate)
+print(r2_knowledge_high_moderate)
+
+
+# calculate the c-statsics value => to also measure predictive power of the model
+# it's value is almost 0.8 which is almost excellent predictive power
+Cstat(model_knowledge_high_moderate)
+
+# create the Hosmer Lemeshow test to detect the goddness of fit
+# yields p-value of 0.5165 so fail to reject the null hypothesis (The observed data fits the model well)
+# so accept the accept it and the data fits the model well
+hoslem.test(x = model_knowledge_high_moderate$y,
+            y = fitted(model_knowledge_high_moderate),
+            g = 10)
+
+# all above steps whould be followed to get the best results and select models based
+# on the best results and AIC
 
 
 ## create a function that takes the data frame name, score_variable_name, level1 and level2
@@ -338,7 +399,7 @@ finalfit_results_all_explanatory <- function(df, score, level1, level2) {
   
   # Filter rows based on the levels of the score
   filtered_df <- df %>%
-    filter(get(score) %in% c(level1, level2)) 
+    filter(get(score) %in% c(level1, level2))
   
   # Run finalfit on filtered data
   finalfit_result <- filtered_df %>%
